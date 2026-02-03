@@ -144,4 +144,4 @@ sudo bt default
 
 - [快速开始指南](quick-start.md) - 5分钟上手教程
 - [首次运行配置](first-run.md) - 初始化配置说明
-- [故障排除](troubleshooting.md) - 常见问题解决
+- [故障排除](../troubleshooting.md) - 常见问题解决

@@ -1,58 +1,114 @@
 site_name: Oh My OpenCode Agents
+site_url: https://choovin.github.io/oh-my-opencode-agents/
+site_description: Ubuntu服务器初始化脚本 - 一键配置开发环境
+site_author: choovin
+
+repo_name: choovin/oh-my-opencode-agents
+repo_url: https://github.com/choovin/oh-my-opencode-agents
+copyright: Copyright &copy; 2025 choovin
+
 theme:
   name: material
+  custom_dir: docs/overrides
+  logo: assets/images/logo.svg
+  favicon: assets/images/favicon.svg
   palette:
-    - scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-    - scheme: default
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   features:
     - navigation.tabs
     - navigation.sections
     - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.path
     - search.highlight
     - search.share
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/choovin/oh-my-opencode-agents
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
 
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - admonition
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
   - tables
   - toc:
       permalink: true
+      title: 目录
+  - attr_list
+  - md_in_html
+  - footnotes
+
+plugins:
+  - search:
+      lang: 
+        - en
+        - zh
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      type: iso_date
+      enable_creation_date: true
 
 nav:
-  - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-    - First Run: getting-started/first-run.md
-  - Features:
-    - Overview: features/overview.md
-    - Development Tools: features/dev-tools.md
-    - Server Management: features/server-management.md
-    - Nginx Integration: features/nginx-integration.md
-  - Configuration:
-    - Environment: configuration/environment.md
-    - Customization: configuration/customization.md
-  - Troubleshooting: troubleshooting.md
-  - Development: development.md
+  - 首页: index.md
+  - 快速开始:
+    - getting-started/index.md
+    - 安装指南: getting-started/installation.md
+    - 快速开始: getting-started/quick-start.md
+    - 首次运行: getting-started/first-run.md
+  - 功能特性:
+    - features/index.md
+    - 功能概览: features/overview.md
+    - 开发工具: features/dev-tools.md
+    - 服务器管理: features/server-management.md
+    - Nginx集成: features/nginx-integration.md
+  - 配置指南:
+    - configuration/index.md
+    - 环境变量: configuration/environment.md
+    - 自定义配置: configuration/customization.md
+  - 故障排除: troubleshooting.md
+  - 开发文档: development.md
+
+extra_css:
+  - assets/stylesheets/extra.css
