@@ -806,6 +806,12 @@ install_poetry() {
     if ask_yn "Install Poetry (modern Python project & dependency management)?" "y"; then
         log_info "Installing Poetry..."
 
+        # Ensure python3 is installed
+        if ! command_exists python3; then
+            log_info "Installing python3..."
+            sudo apt-get install -y python3
+        fi
+
         # Install Poetry using the official installer
         curl -sSL https://install.python-poetry.org | python3 -
 
@@ -1253,6 +1259,13 @@ install_opencode_manager() {
         log_info "Installing dependencies..."
         cd "$install_dir"
         
+        # Check if Node.js is installed (required dependency)
+        if ! command_exists npm; then
+            log_error "Node.js/npm not installed. OpenCode Manager requires Node.js."
+            log_info "Please install Node.js first or run the full installation."
+            return 1
+        fi
+        
         # Check if pnpm is installed, if not install it
         if ! command_exists pnpm; then
             log_info "Installing pnpm..."
@@ -1281,9 +1294,9 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/opencode-manager
-Environment=PATH=/usr/bin:/usr/local/bin
+Environment=PATH=/usr/local/bin:/usr/bin
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/pnpm start
+ExecStart=/usr/local/bin/pnpm start
 Restart=always
 RestartSec=10
 
