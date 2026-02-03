@@ -1440,23 +1440,42 @@ install_opencode_manager() {
         # Step 2: Create installation directory and clone
         log_info "Step 2/6: Cloning OpenCode Manager repository..."
         sudo mkdir -p "$install_dir"
-        sudo git clone https://github.com/chriswritescode-dev/opencode-manager.git "$install_dir"
+
+        # Remove existing content if any
+        sudo rm -rf "${install_dir:?}"/*
+
+        # Clone repository with error handling
+        if ! sudo git clone https://github.com/chriswritescode-dev/opencode-manager.git "$install_dir" 2>&1; then
+            log_error "Failed to clone OpenCode Manager repository"
+            log_info "Please check your internet connection and try again"
+            return 1
+        fi
+
+        # Verify clone was successful
+        if [ ! -f "$install_dir/package.json" ]; then
+            log_error "package.json not found after clone. Repository may be empty or invalid."
+            log_info "Please check: https://github.com/chriswritescode-dev/opencode-manager"
+            return 1
+        fi
 
         # Change to install directory
         cd "$install_dir"
 
         # Step 3: Install dependencies
         log_info "Step 3/6: Installing dependencies..."
-        sudo pnpm install
+        if ! sudo pnpm install 2>&1; then
+            log_error "Failed to install dependencies"
+            return 1
+        fi
 
         # Step 4: Build frontend
         log_info "Step 4/6: Building frontend..."
         if [ -f "package.json" ]; then
             # Check if there's a build script
             if grep -q '"build"' package.json; then
-                sudo pnpm build || {
-                    log_warn "Frontend build may have had issues, continuing..."
-                }
+                if ! sudo pnpm build 2>&1; then
+                    log_warn "Frontend build failed, but continuing..."
+                fi
             else
                 log_warn "No build script found in package.json"
             fi
