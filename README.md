@@ -1,44 +1,84 @@
 # Ubuntu Server Initial Setup Script
 
-A comprehensive, interactive setup script for Ubuntu servers with essential development tools.
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%2F22.04%2F24.04-orange.svg)](https://ubuntu.com)
+[![Bash](https://img.shields.io/badge/Bash-4.0%2B-green.svg)](https://www.gnu.org/software/bash/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Features
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-✨ **Interactive Installation** - Y/N prompts for each component OR auto-yes mode with `-y` flag
-🔍 **Before/After Status** - Shows what's already installed vs newly installed
-🎨 **Colorized Output** - Clear, readable feedback with severity levels
-🔒 **Robust Error Handling** - Strict error checking with detailed logging
-💾 **Automatic Backups** - Saves existing configurations before modification
-📊 **Comprehensive Logging** - Full logs saved with timestamps
-🐳 **Docker User Setup** - Automatic user group configuration
-🐚 **Smart Shell Config** - Zsh with prefix-based history search
-⚡ **Non-Interactive Mode** - Use `-y` flag for fully automated installation
+A comprehensive, interactive setup script for Ubuntu servers with essential modern development tools.
 
-## What Gets Installed
+---
+
+## 🚀 Quick Start
+
+### First Time Commands
+
+```bash
+# Clone the repository
+git clone https://github.com/typhoon1217/ubuntu-server-init.git
+cd ubuntu-server-init
+
+# Make executable
+chmod +x ubuntu-server-setup.sh
+
+# Interactive mode (recommended for first use)
+./ubuntu-server-setup.sh
+
+# Full auto mode (for CI/CD or automation)
+./ubuntu-server-setup.sh -y
+```
+
+---
+
+## ✨ Features
+
+- 🎯 **Interactive Installation** - Y/N prompts for each component
+- ⚡ **Auto Mode** - `-y` flag for fully automated installation
+- 🔍 **Before/After Status** - Shows installed vs newly installed
+- 🎨 **Colorized Output** - Clear, readable feedback with severity levels
+- 🔒 **Robust Error Handling** - Strict error checking with detailed logging
+- 💾 **Automatic Backups** - Saves existing configurations before modification
+- 📊 **Comprehensive Logging** - Full logs saved with timestamps
+- 🐳 **Docker User Setup** - Automatic user group configuration
+- 🐚 **Smart Shell Config** - Zsh with prefix-based history search
+- ⚡ **Non-Interactive Mode** - Use `-y` flag for fully automated installation
+
+---
+
+## 📦 What Gets Installed
 
 ### Core Tools
-- **git** - Version control system
-- **zsh + oh-my-zsh** - Enhanced shell with framework
-- **zoxide** - Smart cd command (remembers directories)
-- **lazygit** - Terminal UI for git
-- **lazydocker** - Terminal UI for Docker
-- **Docker CE** - Latest Docker from official repository
-- **Neovim** - Latest stable (v0.10+) via AppImage with PPA fallback
-- **LuaRocks** - Lua package manager with Lua 5.4
-- **Node.js LTS** - Latest LTS (v20.x) from official NodeSource repository with npm, yarn, pnpm
-- **UV** - Fast Python package manager
-- **GCC & Build Tools** - Compiler and development essentials
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Git** | Latest | Version control system |
+| **Zsh + Oh-My-Zsh** | Latest | Enhanced shell with framework |
+| **Zoxide** | Latest | Smart cd command (remembers directories) |
+| **Lazygit** | Latest | Terminal UI for git |
+| **Lazydocker** | Latest | Terminal UI for Docker |
+| **Docker CE** | Latest | Containerization platform |
+| **Neovim** | v0.10+ | Modern text editor |
+| **LuaRocks** | Latest | Lua package manager |
+| **Node.js LTS** | v20.x+ | JavaScript runtime (npm, yarn, pnpm) |
+| **UV** | Latest | Fast Python package manager |
+| **GCC & Build Tools** | Latest | Compiler and development essentials |
 
 ### Additional Tools
-- **btop** - Modern system resource monitor
-- **tmux** - Terminal multiplexer
-- **fzf** - Fuzzy finder for files and history
-- **ripgrep** - Fast grep alternative
-- **fd** - Fast find alternative
 
-## Usage
+| Tool | Purpose |
+|------|---------|
+| **btop** | Modern system resource monitor |
+| **tmux** | Terminal multiplexer |
+| **fzf** | Fuzzy finder for files and history |
+| **ripgrep (rg)** | Fast grep alternative |
+| **fd** | Fast find alternative |
 
-### Interactive Mode (Default)
+---
+
+## 🎮 Usage
+
+### Interactive Mode (Recommended for First Use)
 
 ```bash
 ./ubuntu-server-setup.sh
@@ -50,7 +90,7 @@ The script will:
 3. Present Y/N prompts for each component
 4. Install selected components with progress feedback
 5. Configure post-installation settings
-6. Display detailed before/after summary with newly installed, upgraded, and unchanged components
+6. Display detailed before/after summary
 
 ### Non-Interactive Mode (Auto-Yes)
 
@@ -60,7 +100,10 @@ The script will:
 ./ubuntu-server-setup.sh --yes
 ```
 
-Perfect for automated deployments or when you want to install everything without prompts. All Y/N prompts automatically answer "yes".
+Perfect for:
+- 🤖 CI/CD automated deployments
+- 🔄 Batch server configuration
+- ⏱️ Unattended installations
 
 ### Display Help
 
@@ -68,9 +111,41 @@ Perfect for automated deployments or when you want to install everything without
 ./ubuntu-server-setup.sh --help
 ```
 
-### What to Expect
+---
 
-#### Interactive Mode Output
+## 📋 Command Examples
+
+### First Run Example
+
+```bash
+# 1. Download script
+curl -O https://raw.githubusercontent.com/typhoon1217/ubuntu-server-init/main/ubuntu-server-setup.sh
+
+# 2. Make executable
+chmod +x ubuntu-server-setup.sh
+
+# 3. Run (interactive mode)
+./ubuntu-server-setup.sh
+
+# 4. Check logs
+cat ~/ubuntu-setup-*.log
+```
+
+### Automation Example
+
+```bash
+# Full automatic installation
+./ubuntu-server-setup.sh -y
+
+# Run as root (not recommended)
+sudo bash ubuntu-server-setup.sh -y
+```
+
+---
+
+## 🎯 Expected Output
+
+### Interactive Mode Output Example
 
 ```
 ========================================
@@ -84,8 +159,6 @@ Pre-Installation Status Check
   ✗ lazygit: not installed
   ✓ docker: Docker version 24.0.7
   ...
-
-[INFO] Status check complete
 
 Continue with installation? [Y/n]: y
 
@@ -122,7 +195,7 @@ Actions performed during this run:
   ✓ Zsh Config
 ```
 
-#### Auto-Yes Mode Output
+### Auto-Yes Mode Output
 
 ```bash
 ./ubuntu-server-setup.sh -y
@@ -133,7 +206,9 @@ Install/upgrade git? [AUTO-YES]
 # ... everything installs automatically
 ```
 
-## Post-Installation
+---
+
+## 🔧 Post-Installation
 
 ### Important Steps
 
@@ -172,20 +247,22 @@ The configured zsh includes:
 The following aliases are configured in `.zshrc`:
 
 ```bash
-vim='nvim'    # Use Neovim instead of Vim
-vi='nvim'     # Use Neovim instead of Vi
-lg='lazygit'  # Quick access to lazygit
+vim='nvim'       # Use Neovim instead of Vim
+vi='nvim'        # Use Neovim instead of Vi
+lg='lazygit'     # Quick access to lazygit
 ld='lazydocker'  # Quick access to lazydocker
 ```
 
-## Configuration Files
+---
 
-### Locations
+## 📁 Configuration Files
 
-- **Log file**: `~/ubuntu-setup-YYYYMMDD-HHMMSS.log`
-- **Backups**: `~/.config-backups/YYYYMMDD-HHMMSS/`
-- **Zsh config**: `~/.zshrc`
-- **Neovim config**: `~/.config/nvim/`
+| Type | Location |
+|------|----------|
+| Log file | `~/ubuntu-setup-YYYYMMDD-HHMMSS.log` |
+| Backups | `~/.config-backups/YYYYMMDD-HHMMSS/` |
+| Zsh config | `~/.zshrc` |
+| Neovim config | `~/.config/nvim/` |
 
 ### Neovim Configuration
 
@@ -195,7 +272,9 @@ The script clones your custom Neovim configuration from:
 
 **Note**: SSH requires GitHub SSH key setup. If SSH fails, HTTPS is attempted automatically.
 
-## Security Considerations
+---
+
+## 🛡️ Security Considerations
 
 ### Docker Group
 
@@ -217,7 +296,9 @@ ls -la ~/.config-backups/
 cp -r ~/.config-backups/20250122-143022/nvim-143500 ~/.config/nvim
 ```
 
-## Troubleshooting
+---
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
@@ -279,7 +360,9 @@ groups
 docker ps
 ```
 
-## Customization
+---
+
+## ⚙️ Customization
 
 ### Modify Components
 
@@ -317,14 +400,18 @@ plugins=(
 )
 ```
 
-## Requirements
+---
+
+## 📋 Requirements
 
 - Ubuntu 20.04, 22.04, or 24.04
 - Sudo privileges
 - Internet connection
 - ~500MB disk space for all tools
 
-## Best Practices Applied
+---
+
+## ✨ Best Practices Applied
 
 This script follows industry best practices:
 
@@ -337,7 +424,9 @@ This script follows industry best practices:
 ✅ Internet connectivity check
 ✅ Idempotent operations (safe to re-run)
 
-## References
+---
+
+## 📚 References
 
 - [Docker Official Docs](https://docs.docker.com/engine/install/ubuntu/)
 - [Oh My Zsh](https://ohmyz.sh/)
@@ -345,13 +434,39 @@ This script follows industry best practices:
 - [Lazygit](https://github.com/jesseduffield/lazygit)
 - [Lazydocker](https://github.com/jesseduffield/lazydocker)
 - [Zoxide](https://github.com/ajeetdsouza/zoxide)
-
-## License
-
-This script is provided as-is for personal use.
+- [UV](https://github.com/astral-sh/uv)
 
 ---
 
-**Generated for**: typhoon1217
-**Date**: 2025-01-22
-**Version**: 1.0.0
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Author**: typhoon1217  
+**Date**: 2025-01-22  
+**Version**: 1.0.0  
+
+---
+
+## 💡 Quick Reference
+
+```bash
+# First time use
+chmod +x ubuntu-server-setup.sh && ./ubuntu-server-setup.sh
+
+# Full automatic
+./ubuntu-server-setup.sh -y
+
+# View logs
+cat ~/ubuntu-setup-*.log
+
+# Refresh Docker permissions
+newgrp docker
+
+# Test all tools
+docker run hello-world && lazygit --version && nvim --version
+```
+
+**Happy Coding! 🚀**
