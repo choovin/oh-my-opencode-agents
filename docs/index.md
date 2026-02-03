@@ -89,6 +89,6 @@ sudo ./ubuntu-server-setup.sh -y
 
 ---
 
-**作者**: typhoon1217  
+**作者**: choovin  
 **版本**: 1.0.0  
 **日期**: 2025-01-22

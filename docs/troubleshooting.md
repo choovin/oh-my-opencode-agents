@@ -178,10 +178,15 @@ source ~/.zshrc
 mv ~/.config/nvim ~/.config/nvim.backup.$(date +%Y%m%d)
 
 # 手动克隆
-git clone https://github.com/typhoon1217/nvimconfig.git ~/.config/nvim
+```bash
+# 备份现有配置
+mv ~/.config/nvim ~/.config/nvim.backup.$(date +%Y%m%d)
+
+# 手动克隆
+git clone https://github.com/choovin/nvimconfig.git ~/.config/nvim
 
 # 或者使用SSH（如果已配置）
-git clone git@github.com:typhoon1217/nvimconfig.git ~/.config/nvim
+git clone git@github.com:choovin/nvimconfig.git ~/.config/nvim
 ```
 
 ### Neovim版本过低

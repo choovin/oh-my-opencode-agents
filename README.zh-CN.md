@@ -16,7 +16,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/typhoon1217/oh-my-opencode-agents.git
+git clone https://github.com/choovin/oh-my-opencode-agents.git
 cd oh-my-opencode-agents
 
 # 赋予执行权限
@@ -120,7 +120,7 @@ chmod +x ubuntu-server-setup.sh
 
 ```bash
 # 1. 下载脚本
-curl -O https://raw.githubusercontent.com/typhoon1217/oh-my-opencode-agents/main/ubuntu-server-setup.sh
+curl -O https://raw.githubusercontent.com/choovin/oh-my-opencode-agents/main/ubuntu-server-setup.sh
 
 # 2. 添加执行权限
 chmod +x ubuntu-server-setup.sh

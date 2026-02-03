@@ -16,7 +16,7 @@ A comprehensive, interactive setup script for Ubuntu servers with essential mode
 
 ```bash
 # Clone the repository
-git clone https://github.com/typhoon1217/oh-my-opencode-agents.git
+git clone https://github.com/choovin/oh-my-opencode-agents.git
 cd oh-my-opencode-agents
 
 # Make executable
@@ -130,7 +130,7 @@ Perfect for:
 
 ```bash
 # 1. Download script
-curl -O https://raw.githubusercontent.com/typhoon1217/oh-my-opencode-agents/main/ubuntu-server-setup.sh
+curl -O https://raw.githubusercontent.com/choovin/oh-my-opencode-agents/main/ubuntu-server-setup.sh
 
 # 2. Make executable
 chmod +x ubuntu-server-setup.sh
@@ -433,8 +433,8 @@ tail -f /www/wwwlogs/www.sailfish.com.cn.error.log
 ### Neovim Configuration
 
 The script clones your custom Neovim configuration from:
-- Primary: `git@github.com:typhoon1217/nvimconfig.git` (SSH)
-- Fallback: `https://github.com/typhoon1217/nvimconfig.git` (HTTPS)
+- Primary: `git@github.com:choovin/nvimconfig.git` (SSH)
+- Fallback: `https://github.com/choovin/nvimconfig.git` (HTTPS)
 
 **Note**: SSH requires GitHub SSH key setup. If SSH fails, HTTPS is attempted automatically.
 
