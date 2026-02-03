@@ -43,6 +43,8 @@ chmod +x ubuntu-server-setup.sh
 - 🐳 **Docker User Setup** - Automatic user group configuration
 - 🐚 **Smart Shell Config** - Zsh with prefix-based history search
 - ⚡ **Non-Interactive Mode** - Use `-y` flag for fully automated installation
+- 🌐 **Nginx Reverse Proxy** - Domain-based access to OpenCode Manager via Baota panel
+- 🔄 **WebSocket Support** - Full WebSocket proxy configuration for real-time applications
 
 ---
 
@@ -62,7 +64,16 @@ chmod +x ubuntu-server-setup.sh
 | **LuaRocks** | Latest | Lua package manager |
 | **Node.js LTS** | v20.x+ | JavaScript runtime (npm, yarn, pnpm) |
 | **UV** | Latest | Fast Python package manager |
+| **Poetry** | Latest | Python dependency management & packaging |
 | **GCC & Build Tools** | Latest | Compiler and development essentials |
+
+### Server & Proxy Tools
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **OpenCode Manager** | Latest | Self-hosted development environment manager |
+| **Baota Panel** | Latest | Web-based server management panel |
+| **Nginx (via Baota)** | 1.24.0+ | High-performance reverse proxy with WebSocket support |
 
 ### Additional Tools
 
@@ -251,6 +262,161 @@ vim='nvim'       # Use Neovim instead of Vim
 vi='nvim'        # Use Neovim instead of Vi
 lg='lazygit'     # Quick access to lazygit
 ld='lazydocker'  # Quick access to lazydocker
+```
+
+---
+
+## 📦 Poetry - Python Dependency Management
+
+Poetry is a modern Python dependency management and packaging tool that replaces `requirements.txt` and `setup.py`.
+
+### Why Poetry?
+
+| Feature | Traditional (pip) | Poetry |
+|---------|-------------------|--------|
+| **Dependency Resolution** | Manual, conflicts common | Automatic, resolves conflicts |
+| **Lock File** | requirements.txt (loose) | poetry.lock (exact versions) |
+| **Virtual Environments** | Manual (venv) | Automatic, in-project by default |
+| **Packaging** | setup.py + MANIFEST.in | Single pyproject.toml |
+| **Publishing** | twine + multiple commands | `poetry publish` |
+
+### Quick Start
+
+```bash
+# Create a new project
+poetry new my-project
+cd my-project
+
+# Or initialize Poetry in existing project
+poetry init
+```
+
+### Common Commands
+
+```bash
+# Add dependencies
+poetry add requests
+poetry add pytest --group dev
+
+# Add specific version
+poetry add torch@2.1.0
+
+# Install from lock file (production)
+poetry install --no-dev
+
+# Update dependencies
+poetry update
+
+# Run commands in virtual environment
+poetry run python main.py
+poetry run pytest
+
+# Activate shell in venv
+poetry shell
+
+# Build and publish
+poetry build
+poetry publish
+```
+
+### Example: AI Project
+
+```bash
+# Create AI project
+poetry new ai-project
+cd ai-project
+
+# Add ML dependencies
+poetry add torch transformers datasets
+poetry add jupyter --group dev
+
+# Install everything
+poetry install
+
+# Run Jupyter from within venv
+poetry run jupyter lab
+```
+
+### Configuration
+
+Poetry is configured to create virtual environments inside project directories:
+
+```bash
+# Check config
+poetry config --list
+
+# Virtual envs in project (already set by script)
+poetry config virtualenvs.in-project true
+
+# Default Python version
+poetry env use python3.11
+```
+
+### Project Structure
+
+```
+my-project/
+├── pyproject.toml          # Project config & dependencies
+├── poetry.lock             # Locked dependency versions
+├── README.md
+├── my_project/
+│   └── __init__.py
+├── tests/
+└── .venv/                  # Virtual environment (in-project)
+```
+
+### VS Code Integration
+
+```bash
+# Get venv path for VS Code
+poetry env info --path
+
+# Set Python interpreter in VS Code to:
+# <project-path>/.venv/bin/python
+```
+
+---
+
+## 🌐 Nginx Reverse Proxy
+
+The script can automatically configure Nginx as a reverse proxy for OpenCode Manager:
+
+### Features
+
+- **Domain Access**: Access OpenCode Manager via `http://www.sailfish.com.cn`
+- **WebSocket Support**: Full WebSocket proxy with upgrade headers
+- **HTTP/1.1**: Proper keep-alive and streaming support
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- **Static File Caching**: 30-day cache for assets (jpg, css, js, etc.)
+- **Timeout Configuration**: 60s connect/send/read timeouts
+- **Buffer Control**: Disabled buffering for real-time streaming
+
+### Proxy Configuration
+
+```
+http://www.sailfish.com.cn  →  http://127.0.0.1:5003
+```
+
+### Nginx Config Location
+
+```
+/www/server/panel/vhost/nginx/www.sailfish.com.cn.conf
+```
+
+### Management Commands
+
+```bash
+# Start/Stop/Reload Nginx
+sudo /etc/init.d/nginx start
+sudo /etc/init.d/nginx stop
+sudo /etc/init.d/nginx reload
+
+# Test configuration
+/www/server/nginx/sbin/nginx -t
+
+# View logs
+tail -f /www/wwwlogs/www.sailfish.com.cn.log
+tail -f /www/wwwlogs/www.sailfish.com.cn.error.log
 ```
 
 ---
@@ -467,6 +633,14 @@ newgrp docker
 
 # Test all tools
 docker run hello-world && lazygit --version && nvim --version
+
+# Poetry usage
+poetry new my-project          # Create new project
+poetry add <package>           # Add dependency
+poetry install                 # Install from poetry.lock
+poetry run <command>           # Run command in virtualenv
+poetry shell                   # Activate virtualenv
+poetry config virtualenvs.in-project true  # Store venvs in project dirs
 ```
 
 **Happy Coding! 🚀**

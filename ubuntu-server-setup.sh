@@ -211,6 +211,15 @@ check_installation_status() {
         echo -e "  ${RED}✗${NC} uv: not installed" | tee -a "$LOG_FILE"
     fi
 
+    # Poetry
+    if command_exists poetry || [ -f "$HOME/.local/bin/poetry" ]; then
+        BEFORE_INSTALL[poetry]="$(poetry --version 2>/dev/null || echo 'installed')"
+        echo -e "  ${GREEN}✓${NC} poetry: ${BEFORE_INSTALL[poetry]}" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[poetry]="not installed"
+        echo -e "  ${RED}✗${NC} poetry: not installed" | tee -a "$LOG_FILE"
+    fi
+
     # LuaRocks
     if command_exists luarocks; then
         BEFORE_INSTALL[luarocks]="$(luarocks --version 2>/dev/null | head -n1 || echo 'installed')"
@@ -780,6 +789,65 @@ install_uv() {
         fi
     else
         log_warn "Skipping UV installation"
+        return 1
+    fi
+}
+
+install_poetry() {
+    log_header "Poetry Installation (Python Dependency & Packaging Manager)"
+
+    if command_exists poetry; then
+        log_warn "Poetry is already installed ($(poetry --version 2>/dev/null || echo 'installed'))"
+        if ! ask_yn "Reinstall/upgrade Poetry?" "n"; then
+            return 1
+        fi
+    fi
+
+    if ask_yn "Install Poetry (modern Python project & dependency management)?" "y"; then
+        log_info "Installing Poetry..."
+
+        # Install Poetry using the official installer
+        curl -sSL https://install.python-poetry.org | python3 -
+
+        # Add to PATH temporarily for this session
+        export PATH="$HOME/.local/bin:$PATH"
+
+        # Create symlink to make it globally accessible
+        if [ -f "$HOME/.local/bin/poetry" ]; then
+            if [ -w /usr/local/bin ] || [ "$EUID" -eq 0 ]; then
+                ln -sf "$HOME/.local/bin/poetry" /usr/local/bin/poetry 2>/dev/null || true
+                log_info "Created symlink: /usr/local/bin/poetry"
+            fi
+        fi
+
+        # Add to shell configuration for persistence
+        if [ -f "$HOME/.zshrc" ]; then
+            if ! grep -q "export PATH=\"\$HOME/.local/bin:\$PATH\"" "$HOME/.zshrc" 2>/dev/null; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+                log_info "Added Poetry to PATH in ~/.zshrc"
+            fi
+        fi
+
+        # Verify installation
+        if command -v poetry >/dev/null 2>&1 || [ -f "$HOME/.local/bin/poetry" ]; then
+            log_success "Poetry installed successfully"
+            if command -v poetry >/dev/null 2>&1; then
+                log_info "Poetry version: $(poetry --version)"
+            else
+                log_info "Poetry location: $HOME/.local/bin/poetry"
+            fi
+
+            # Configure Poetry to create virtual environments in project directories
+            poetry config virtualenvs.in-project true
+            log_info "Poetry configured: virtual environments will be created in project directories"
+
+            return 0
+        else
+            log_error "Poetry installation failed"
+            return 1
+        fi
+    else
+        log_warn "Skipping Poetry installation"
         return 1
     fi
 }
@@ -1678,6 +1746,7 @@ main() {
     install_luarocks && installed_components+=("LuaRocks")
     install_nodejs && installed_components+=("Node.js LTS")
     install_uv && installed_components+=("UV")
+    install_poetry && installed_components+=("Poetry")
     install_gcc && installed_components+=("GCC & Build Tools")
 
     # Additional tools
@@ -1701,7 +1770,7 @@ main() {
     log_header "Post-Installation Status Check"
 
     # Check what was installed/upgraded
-    for tool in git zsh oh-my-zsh zoxide lazygit lazydocker docker nvim luarocks node uv gcc btop tmux fzf ripgrep fd opencode-manager baota-panel baota-nginx sailfish-website nginx-symlink; do
+    for tool in git zsh oh-my-zsh zoxide lazygit lazydocker docker nvim luarocks node uv poetry gcc btop tmux fzf ripgrep fd opencode-manager baota-panel baota-nginx sailfish-website nginx-symlink; do
         local current_status=""
         case $tool in
             git) command_exists git && current_status="$(git --version 2>/dev/null || echo 'installed')" ;;
@@ -1715,6 +1784,7 @@ main() {
             luarocks) command_exists luarocks && current_status="$(luarocks --version 2>/dev/null | head -n1 || echo 'installed')" ;;
             node) command_exists node && current_status="$(node --version 2>/dev/null || echo 'installed')" ;;
             uv) (command_exists uv || [ -f "$HOME/.cargo/bin/uv" ]) && current_status="$(uv --version 2>/dev/null || echo 'installed')" ;;
+            poetry) (command_exists poetry || [ -f "$HOME/.local/bin/poetry" ]) && current_status="$(poetry --version 2>/dev/null || echo 'installed')" ;;
             gcc) command_exists gcc && current_status="$(gcc --version 2>/dev/null | head -n1 || echo 'installed')" ;;
             btop) command_exists btop && current_status="installed" ;;
             tmux) command_exists tmux && current_status="$(tmux -V 2>/dev/null || echo 'installed')" ;;
@@ -1798,13 +1868,25 @@ main() {
     echo -e "   ${BLUE}•${NC} nvim --version" | tee -a "$LOG_FILE"
     echo -e "   ${BLUE}•${NC} lazygit --version" | tee -a "$LOG_FILE"
     echo -e "   ${BLUE}•${NC} lazydocker --version" | tee -a "$LOG_FILE"
+    echo -e "   ${BLUE}•${NC} poetry --version" | tee -a "$LOG_FILE"
     echo -e "${CYAN}4.${NC} Backups are stored in: $BACKUP_DIR" | tee -a "$LOG_FILE"
     echo -e "${CYAN}5.${NC} Full log available at: $LOG_FILE" | tee -a "$LOG_FILE"
+    
+    # Python tools next steps
+    if [ -f "$HOME/.local/bin/poetry" ] || command -v poetry >/dev/null 2>&1; then
+        echo ""
+        echo -e "${CYAN}6.${NC} Poetry (Python Dependency Manager):" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Quick start: poetry new my-project" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Add dependencies: poetry add <package>" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Install from lock file: poetry install" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Run commands: poetry run <command>" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Virtual envs in project: poetry config virtualenvs.in-project true" | tee -a "$LOG_FILE"
+    fi
     
     # Advanced tools next steps
     if [ -d "/opt/opencode-manager" ]; then
         echo ""
-        echo -e "${CYAN}6.${NC} OpenCode Manager:" | tee -a "$LOG_FILE"
+        echo -e "${CYAN}7.${NC} OpenCode Manager:" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Access: http://$(hostname -I | awk '{print $1}'):5003" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Service: sudo systemctl {start|stop|restart} opencode-manager" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Logs: sudo journalctl -u opencode-manager -f" | tee -a "$LOG_FILE"
@@ -1812,14 +1894,14 @@ main() {
     
     if [ -f "/etc/init.d/bt" ]; then
         echo ""
-        echo -e "${CYAN}7.${NC} Baota Panel:" | tee -a "$LOG_FILE"
+        echo -e "${CYAN}8.${NC} Baota Panel:" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} View info: sudo bt default" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Panel CLI: sudo bt" | tee -a "$LOG_FILE"
     fi
     
     if [ -f "/www/server/nginx/sbin/nginx" ]; then
         echo ""
-        echo -e "${CYAN}8.${NC} Nginx (via Baota):" | tee -a "$LOG_FILE"
+        echo -e "${CYAN}9.${NC} Nginx (via Baota):" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Service: sudo /etc/init.d/nginx {start|stop|reload} " | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Config: /www/server/panel/vhost/nginx/" | tee -a "$LOG_FILE"
         
@@ -1830,7 +1912,7 @@ main() {
     
     if [ -d "/www/wwwroot/www.sailfish.com.cn" ]; then
         echo ""
-        echo -e "${CYAN}9.${NC} Website www.sailfish.com.cn:" | tee -a "$LOG_FILE"
+        echo -e "${CYAN}10.${NC} Website www.sailfish.com.cn:" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Web root: /www/wwwroot/www.sailfish.com.cn" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Access via nginx proxy: http://www.sailfish.com.cn (add to /etc/hosts if needed)" | tee -a "$LOG_FILE"
         echo -e "   ${BLUE}•${NC} Nginx config: /www/server/panel/vhost/nginx/www.sailfish.com.cn.conf" | tee -a "$LOG_FILE"

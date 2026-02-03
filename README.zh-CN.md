@@ -62,6 +62,7 @@ chmod +x ubuntu-server-setup.sh
 | **LuaRocks** | 最新版 | Lua包管理器 |
 | **Node.js LTS** | v20.x+ | JavaScript运行时（含npm, yarn, pnpm） |
 | **UV** | 最新版 | 极速Python包管理器 |
+| **Poetry** | 最新版 | Python依赖管理和打包工具 |
 | **GCC & 构建工具** | 最新版 | 编译器和开发基础工具 |
 
 ### 附加工具
@@ -435,6 +436,7 @@ plugins=(
 - [Lazydocker](https://github.com/jesseduffield/lazydocker)
 - [Zoxide](https://github.com/ajeetdsouza/zoxide)
 - [UV](https://github.com/astral-sh/uv)
+- [Poetry](https://python-poetry.org/)
 
 ---
 
@@ -467,6 +469,14 @@ newgrp docker
 
 # 测试所有工具
 docker run hello-world && lazygit --version && nvim --version
+
+# Poetry 使用指南
+poetry new my-project          # 创建新项目
+poetry add <package>           # 添加依赖
+poetry install                 # 从poetry.lock安装
+poetry run <command>           # 在虚拟环境中运行命令
+poetry shell                   # 激活虚拟环境
+poetry config virtualenvs.in-project true  # 虚拟环境存储在项目目录
 ```
 
 **祝您编码愉快！🚀**
