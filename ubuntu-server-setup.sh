@@ -282,6 +282,51 @@ check_installation_status() {
         BEFORE_INSTALL[fd]="not installed"
         echo -e "  ${RED}✗${NC} fd: not installed" | tee -a "$LOG_FILE"
     fi
+    
+    # OpenCode Manager
+    if [ -d "/opt/opencode-manager" ]; then
+        BEFORE_INSTALL[opencode-manager]="installed"
+        echo -e "  ${GREEN}✓${NC} opencode-manager: installed" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[opencode-manager]="not installed"
+        echo -e "  ${RED}✗${NC} opencode-manager: not installed" | tee -a "$LOG_FILE"
+    fi
+    
+    # Baota Panel
+    if [ -f "/etc/init.d/bt" ]; then
+        BEFORE_INSTALL[baota-panel]="installed"
+        echo -e "  ${GREEN}✓${NC} baota-panel: installed" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[baota-panel]="not installed"
+        echo -e "  ${RED}✗${NC} baota-panel: not installed" | tee -a "$LOG_FILE"
+    fi
+    
+    # Nginx (via Baota)
+    if [ -f "/www/server/nginx/sbin/nginx" ]; then
+        BEFORE_INSTALL[baota-nginx]="$(/www/server/nginx/sbin/nginx -v 2>&1)"
+        echo -e "  ${GREEN}✓${NC} baota-nginx: ${BEFORE_INSTALL[baota-nginx]}" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[baota-nginx]="not installed"
+        echo -e "  ${RED}✗${NC} baota-nginx: not installed" | tee -a "$LOG_FILE"
+    fi
+    
+    # Website www.sailfish.com.cn
+    if [ -d "/www/wwwroot/www.sailfish.com.cn" ]; then
+        BEFORE_INSTALL[sailfish-website]="configured"
+        echo -e "  ${GREEN}✓${NC} sailfish-website: configured" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[sailfish-website]="not configured"
+        echo -e "  ${RED}✗${NC} sailfish-website: not configured" | tee -a "$LOG_FILE"
+    fi
+    
+    # Nginx Symlink
+    if [ -L "/opt/opencode-manager/nginx-configs" ]; then
+        BEFORE_INSTALL[nginx-symlink]="created"
+        echo -e "  ${GREEN}✓${NC} nginx-symlink: created" | tee -a "$LOG_FILE"
+    else
+        BEFORE_INSTALL[nginx-symlink]="not created"
+        echo -e "  ${RED}✗${NC} nginx-symlink: not created" | tee -a "$LOG_FILE"
+    fi
 
     echo ""
     log_info "Status check complete"
@@ -1109,6 +1154,461 @@ EOF
 }
 
 ################################################################################
+# Advanced Server Tools Installation
+################################################################################
+
+install_opencode_manager() {
+    log_header "OpenCode Manager Installation"
+
+    local install_dir="/opt/opencode-manager"
+    
+    if [ -d "$install_dir" ]; then
+        log_warn "OpenCode Manager already installed at $install_dir"
+        if ! ask_yn "Reinstall OpenCode Manager?" "n"; then
+            return 1
+        fi
+        log_info "Removing existing installation..."
+        sudo rm -rf "$install_dir"
+    fi
+
+    if ask_yn "Install OpenCode Manager (runtime mode, no Docker)?" "y"; then
+        log_info "Installing OpenCode Manager..."
+        
+        # Create installation directory
+        sudo mkdir -p "$install_dir"
+        
+        # Clone the repository
+        log_info "Cloning OpenCode Manager repository..."
+        sudo git clone https://github.com/chriswritescode-dev/opencode-manager.git "$install_dir"
+        
+        # Install dependencies
+        log_info "Installing dependencies..."
+        cd "$install_dir"
+        
+        # Check if pnpm is installed, if not install it
+        if ! command_exists pnpm; then
+            log_info "Installing pnpm..."
+            sudo npm install -g pnpm
+        fi
+        
+        # Install packages
+        sudo pnpm install
+        
+        # Create .env file
+        log_info "Creating environment configuration..."
+        sudo cp .env.example .env
+        
+        # Update environment variables for runtime mode
+        sudo sed -i 's/PORT=5003/PORT=5003/' .env
+        sudo sed -i 's/AUTH_SECRET=.*/AUTH_SECRET=opencode-manager-secret-key-2025/' .env
+        
+        # Create systemd service file
+        log_info "Creating systemd service..."
+        sudo tee /etc/systemd/system/opencode-manager.service > /dev/null << 'EOF'
+[Unit]
+Description=OpenCode Manager
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/opencode-manager
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/pnpm start
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        
+        # Reload systemd and enable service
+        sudo systemctl daemon-reload
+        sudo systemctl enable opencode-manager
+        
+        # Start the service
+        log_info "Starting OpenCode Manager service..."
+        sudo systemctl start opencode-manager
+        
+        # Wait for service to start
+        sleep 5
+        
+        # Check if service is running
+        if sudo systemctl is-active --quiet opencode-manager; then
+            log_success "OpenCode Manager installed and running on http://localhost:5003"
+            log_info "Access the web interface at: http://$(hostname -I | awk '{print $1}'):5003"
+            return 0
+        else
+            log_error "OpenCode Manager service failed to start"
+            log_info "Check logs with: sudo journalctl -u opencode-manager -f"
+            return 1
+        fi
+    else
+        log_warn "Skipping OpenCode Manager installation"
+        return 1
+    fi
+}
+
+install_baota_panel() {
+    log_header "Baota Panel Installation"
+
+    if [ -f "/etc/init.d/bt" ] || [ -d "/www/server/panel" ]; then
+        log_warn "Baota Panel already installed"
+        if ! ask_yn "Reinstall Baota Panel? (WARNING: This will remove existing data)" "n"; then
+            return 1
+        fi
+        log_warn "Removing existing Baota installation..."
+        wget -O bt-uninstall.sh http://download.bt.cn/install/bt-uninstall.sh 2>/dev/null && sudo bash bt-uninstall.sh
+    fi
+
+    if ask_yn "Install Baota Panel (宝塔面板)?" "y"; then
+        log_info "Installing Baota Panel..."
+        log_info "This may take 5-10 minutes depending on your system..."
+        
+        # Download and install Baota panel with SSL
+        cd /tmp
+        wget -O install_panel.sh https://download.bt.cn/install/install_panel.sh
+        sudo bash install_panel.sh ssl251104
+        
+        # Wait for installation to complete
+        log_info "Waiting for Baota panel to initialize..."
+        sleep 10
+        
+        # Check if Baota is installed
+        if [ -f "/etc/init.d/bt" ]; then
+            log_success "Baota Panel installed successfully"
+            
+            # Get panel info
+            log_info "Baota panel information:"
+            sudo bt default | tee -a "$LOG_FILE"
+            
+            return 0
+        else
+            log_error "Baota Panel installation failed"
+            return 1
+        fi
+    else
+        log_warn "Skipping Baota Panel installation"
+        return 1
+    fi
+}
+
+install_nginx_via_baota() {
+    log_header "Nginx Installation via Baota Panel"
+
+    # Check if Baota is installed
+    if [ ! -f "/etc/init.d/bt" ]; then
+        log_warn "Baota Panel not installed, skipping Nginx installation"
+        return 1
+    fi
+
+    # Check if nginx is already installed via Baota
+    if [ -f "/www/server/nginx/sbin/nginx" ]; then
+        log_warn "Nginx already installed via Baota"
+        log_info "Nginx version: $(/www/server/nginx/sbin/nginx -v 2>&1)"
+        return 0
+    fi
+
+    if ask_yn "Install Nginx via Baota Panel?" "y"; then
+        log_info "Installing Nginx through Baota..."
+        
+        # Start Baota panel if not running
+        if ! sudo /etc/init.d/bt status | grep -q "running"; then
+            log_info "Starting Baota panel..."
+            sudo /etc/init.d/bt start
+            sleep 5
+        fi
+        
+        # Use Baota CLI to install nginx
+        log_info "Installing Nginx (version 1.24.0)..."
+        sudo bt install nginx 1.24.0
+        
+        # Check installation
+        if [ -f "/www/server/nginx/sbin/nginx" ]; then
+            log_success "Nginx installed successfully"
+            log_info "Nginx version: $(/www/server/nginx/sbin/nginx -v 2>&1)"
+            
+            # Start nginx
+            log_info "Starting Nginx..."
+            sudo /etc/init.d/nginx start
+            
+            return 0
+        else
+            log_error "Nginx installation failed"
+            return 1
+        fi
+    else
+        log_warn "Skipping Nginx installation"
+        return 1
+    fi
+}
+
+add_baota_website() {
+    log_header "Add Website to Baota Panel"
+
+    local domain="www.sailfish.com.cn"
+    local web_root="/www/wwwroot/$domain"
+    
+    # Check if Baota is installed
+    if [ ! -f "/etc/init.d/bt" ]; then
+        log_warn "Baota Panel not installed, skipping website setup"
+        return 1
+    fi
+
+    # Check if website already exists
+    if [ -d "$web_root" ]; then
+        log_warn "Website $domain already exists"
+        if ! ask_yn "Reconfigure website $domain?" "n"; then
+            return 1
+        fi
+    fi
+
+    if ask_yn "Add website $domain to Baota Panel?" "y"; then
+        log_info "Adding website $domain..."
+        
+        # Ensure nginx is installed and running
+        if [ ! -f "/www/server/nginx/sbin/nginx" ]; then
+            log_error "Nginx not installed. Please install Nginx first."
+            return 1
+        fi
+        
+        # Create web root directory
+        sudo mkdir -p "$web_root"
+        sudo chown -R www:www "$web_root"
+        
+        # Create default index.html
+        sudo tee "$web_root/index.html" > /dev/null << EOF
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sailfish - Welcome</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { font-size: 3em; margin-bottom: 20px; }
+        p { font-size: 1.2em; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Sailfish</h1>
+        <p>Your website is successfully configured!</p>
+        <p>Domain: www.sailfish.com.cn</p>
+    </div>
+</body>
+</html>
+EOF
+        
+        # Create nginx configuration
+        local nginx_conf="/www/server/panel/vhost/nginx/$domain.conf"
+        sudo tee "$nginx_conf" > /dev/null << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $domain sailfish.com.cn;
+    index index.php index.html index.htm default.php default.htm default.html;
+    root $web_root;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    
+    # Logging
+    access_log /www/wwwlogs/$domain.log;
+    error_log /www/wwwlogs/$domain.error.log;
+    
+    # Static file caching
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # PHP support (if needed in future)
+    location ~ [^/]\.php(/|$) {
+        fastcgi_pass unix:/tmp/php-cgi-74.sock;
+        fastcgi_index index.php;
+        include fastcgi.conf;
+    }
+    
+    # Deny access to hidden files
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+    
+    # Default location
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+        
+        # Reload nginx
+        log_info "Reloading Nginx configuration..."
+        sudo /etc/init.d/nginx reload
+        
+        # Add to hosts file for local testing
+        if ! grep -q "$domain" /etc/hosts; then
+            log_info "Adding $domain to /etc/hosts for local testing..."
+            echo "127.0.0.1 $domain sailfish.com.cn" | sudo tee -a /etc/hosts > /dev/null
+        fi
+        
+        log_success "Website $domain added successfully"
+        log_info "Web root: $web_root"
+        log_info "Nginx config: $nginx_conf"
+        log_info "You can access the website at: http://$domain (after DNS configuration)"
+        
+        return 0
+    else
+        log_warn "Skipping website setup"
+        return 1
+    fi
+}
+
+setup_nginx_symlink() {
+    log_header "Setup Nginx Symlink for OpenCode Manager"
+
+    local baota_nginx_conf="/www/server/panel/vhost/nginx"
+    local opencode_nginx_dir="/opt/opencode-manager/nginx-configs"
+    
+    # Check if Baota nginx directory exists
+    if [ ! -d "$baota_nginx_conf" ]; then
+        log_warn "Baota nginx directory not found at $baota_nginx_conf"
+        return 1
+    fi
+    
+    # Check if OpenCode Manager is installed
+    if [ ! -d "/opt/opencode-manager" ]; then
+        log_warn "OpenCode Manager not installed at /opt/opencode-manager"
+        return 1
+    fi
+
+    if ask_yn "Create symlink from Baota nginx configs to OpenCode Manager?" "y"; then
+        log_info "Creating symlink..."
+        
+        # Create nginx-configs directory in opencode-manager if it doesn't exist
+        sudo mkdir -p "$opencode_nginx_dir"
+        
+        # Backup existing directory if it exists
+        if [ -e "$opencode_nginx_dir" ] && [ ! -L "$opencode_nginx_dir" ]; then
+            backup_path "$opencode_nginx_dir"
+            sudo rm -rf "$opencode_nginx_dir"
+        fi
+        
+        # Remove existing symlink if it exists
+        if [ -L "$opencode_nginx_dir" ]; then
+            sudo rm "$opencode_nginx_dir"
+        fi
+        
+        # Create symlink
+        sudo ln -sf "$baota_nginx_conf" "$opencode_nginx_dir"
+        
+        # Create a script for reloading nginx via Baota
+        sudo tee /opt/opencode-manager/reload-nginx.sh > /dev/null << 'EOF'
+#!/bin/bash
+# Nginx reload script for OpenCode Manager
+
+if [ -f "/etc/init.d/nginx" ]; then
+    echo "Reloading Nginx..."
+    sudo /etc/init.d/nginx reload
+    if [ $? -eq 0 ]; then
+        echo "Nginx reloaded successfully"
+    else
+        echo "Failed to reload Nginx"
+        exit 1
+    fi
+else
+    echo "Nginx init script not found"
+    exit 1
+fi
+EOF
+        sudo chmod +x /opt/opencode-manager/reload-nginx.sh
+        
+        # Create nginx management API wrapper
+        sudo tee /opt/opencode-manager/nginx-api.sh > /dev/null << 'EOF'
+#!/bin/bash
+# Nginx management API for OpenCode Manager
+
+COMMAND=${1:-status}
+
+ case "$COMMAND" in
+    status)
+        if [ -f "/etc/init.d/nginx" ]; then
+            sudo /etc/init.d/nginx status
+        else
+            echo "Nginx not installed"
+            exit 1
+        fi
+        ;;
+    start)
+        sudo /etc/init.d/nginx start
+        ;;
+    stop)
+        sudo /etc/init.d/nginx stop
+        ;;
+    restart)
+        sudo /etc/init.d/nginx restart
+        ;;
+    reload)
+        sudo /etc/init.d/nginx reload
+        ;;
+    test|configtest)
+        /www/server/nginx/sbin/nginx -t
+        ;;
+    *)
+        echo "Usage: $0 {status|start|stop|restart|reload|test}"
+        exit 1
+        ;;
+esac
+EOF
+        sudo chmod +x /opt/opencode-manager/nginx-api.sh
+        
+        # Set permissions
+        sudo chown -R root:root "$opencode_nginx_dir"
+        
+        # Verify symlink
+        if [ -L "$opencode_nginx_dir" ]; then
+            log_success "Symlink created successfully"
+            log_info "Source: $baota_nginx_conf"
+            log_info "Target: $opencode_nginx_dir"
+            log_info "OpenCode Manager can now read and manage nginx configurations"
+            log_info "Reload script: /opt/opencode-manager/reload-nginx.sh"
+            log_info "Management API: /opt/opencode-manager/nginx-api.sh"
+            
+            # List current nginx configs
+            log_info "Current nginx configurations:"
+            ls -la "$opencode_nginx_dir" | tee -a "$LOG_FILE"
+            
+            return 0
+        else
+            log_error "Failed to create symlink"
+            return 1
+        fi
+    else
+        log_warn "Skipping nginx symlink setup"
+        return 1
+    fi
+}
+
+################################################################################
 # Main Execution
 ################################################################################
 
@@ -1162,6 +1662,13 @@ main() {
     install_tmux && installed_components+=("Tmux")
     install_fzf && installed_components+=("Fzf")
     install_ripgrep_fd && installed_components+=("Ripgrep & Fd")
+    
+    # Advanced server tools
+    install_opencode_manager && installed_components+=("OpenCode Manager")
+    install_baota_panel && installed_components+=("Baota Panel")
+    install_nginx_via_baota && installed_components+=("Nginx via Baota")
+    add_baota_website && installed_components+=("Website www.sailfish.com.cn")
+    setup_nginx_symlink && installed_components+=("Nginx Symlink for OpenCode Manager")
 
     # Post-installation configuration
     configure_neovim && installed_components+=("Neovim Config")
@@ -1171,7 +1678,7 @@ main() {
     log_header "Post-Installation Status Check"
 
     # Check what was installed/upgraded
-    for tool in git zsh oh-my-zsh zoxide lazygit lazydocker docker nvim luarocks node uv gcc btop tmux fzf ripgrep fd; do
+    for tool in git zsh oh-my-zsh zoxide lazygit lazydocker docker nvim luarocks node uv gcc btop tmux fzf ripgrep fd opencode-manager baota-panel baota-nginx sailfish-website nginx-symlink; do
         local current_status=""
         case $tool in
             git) command_exists git && current_status="$(git --version 2>/dev/null || echo 'installed')" ;;
@@ -1191,6 +1698,11 @@ main() {
             fzf) command_exists fzf && current_status="$(fzf --version 2>/dev/null || echo 'installed')" ;;
             ripgrep) command_exists rg && current_status="$(rg --version 2>/dev/null | head -n1 || echo 'installed')" ;;
             fd) (command_exists fd || command_exists fdfind) && current_status="installed" ;;
+            opencode-manager) [ -d "/opt/opencode-manager" ] && current_status="installed" ;;
+            baota-panel) [ -f "/etc/init.d/bt" ] && current_status="installed" ;;
+            baota-nginx) [ -f "/www/server/nginx/sbin/nginx" ] && current_status="$(/www/server/nginx/sbin/nginx -v 2>&1)" ;;
+            sailfish-website) [ -d "/www/wwwroot/www.sailfish.com.cn" ] && current_status="configured" ;;
+            nginx-symlink) [ -L "/opt/opencode-manager/nginx-configs" ] && current_status="created" ;;
         esac
 
         if [ -n "$current_status" ]; then
@@ -1265,6 +1777,40 @@ main() {
     echo -e "   ${BLUE}•${NC} lazydocker --version" | tee -a "$LOG_FILE"
     echo -e "${CYAN}4.${NC} Backups are stored in: $BACKUP_DIR" | tee -a "$LOG_FILE"
     echo -e "${CYAN}5.${NC} Full log available at: $LOG_FILE" | tee -a "$LOG_FILE"
+    
+    # Advanced tools next steps
+    if [ -d "/opt/opencode-manager" ]; then
+        echo ""
+        echo -e "${CYAN}6.${NC} OpenCode Manager:" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Access: http://$(hostname -I | awk '{print $1}'):5003" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Service: sudo systemctl {start|stop|restart} opencode-manager" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Logs: sudo journalctl -u opencode-manager -f" | tee -a "$LOG_FILE"
+    fi
+    
+    if [ -f "/etc/init.d/bt" ]; then
+        echo ""
+        echo -e "${CYAN}7.${NC} Baota Panel:" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} View info: sudo bt default" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Panel CLI: sudo bt" | tee -a "$LOG_FILE"
+    fi
+    
+    if [ -f "/www/server/nginx/sbin/nginx" ]; then
+        echo ""
+        echo -e "${CYAN}8.${NC} Nginx (via Baota):" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Service: sudo /etc/init.d/nginx {start|stop|reload} " | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Config: /www/server/panel/vhost/nginx/" | tee -a "$LOG_FILE"
+        
+        if [ -L "/opt/opencode-manager/nginx-configs" ]; then
+            echo -e "   ${BLUE}•${NC} OpenCode Manager can manage nginx via: /opt/opencode-manager/nginx-api.sh" | tee -a "$LOG_FILE"
+        fi
+    fi
+    
+    if [ -d "/www/wwwroot/www.sailfish.com.cn" ]; then
+        echo ""
+        echo -e "${CYAN}9.${NC} Website www.sailfish.com.cn:" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Web root: /www/wwwroot/www.sailfish.com.cn" | tee -a "$LOG_FILE"
+        echo -e "   ${BLUE}•${NC} Local access: http://www.sailfish.com.cn (add to /etc/hosts if needed)" | tee -a "$LOG_FILE"
+    fi
 
     echo ""
     log_success "Setup complete! Happy coding! 🚀"
