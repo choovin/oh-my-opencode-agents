@@ -412,7 +412,7 @@ check_prerequisites() {
     done
 
     # Check internet connectivity
-    if ! ping -c 1 google.com >/dev/null 2>&1; then
+    if ! ping -c 1 baidu.com >/dev/null 2>&1; then
         log_error "No internet connection detected"
         exit 1
     fi
