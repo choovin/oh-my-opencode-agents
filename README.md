@@ -16,8 +16,8 @@ A comprehensive, interactive setup script for Ubuntu servers with essential mode
 
 ```bash
 # Clone the repository
-git clone https://github.com/typhoon1217/ubuntu-server-init.git
-cd ubuntu-server-init
+git clone https://github.com/typhoon1217/oh-my-opencode-agents.git
+cd oh-my-opencode-agents
 
 # Make executable
 chmod +x ubuntu-server-setup.sh
@@ -130,7 +130,7 @@ Perfect for:
 
 ```bash
 # 1. Download script
-curl -O https://raw.githubusercontent.com/typhoon1217/ubuntu-server-init/main/ubuntu-server-setup.sh
+curl -O https://raw.githubusercontent.com/typhoon1217/oh-my-opencode-agents/main/ubuntu-server-setup.sh
 
 # 2. Make executable
 chmod +x ubuntu-server-setup.sh

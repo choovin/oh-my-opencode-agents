@@ -4,7 +4,7 @@
 2026-02-03
 
 ## 测试环境
-- 项目路径: /workspace/repos/ubuntuserverinit
+- 项目路径: /workspace/repos/oh-my-opencode-agents
 - 脚本大小: 69,527 字节 (1,982 行)
 - Git 提交数: 5 commits ahead of origin/main
 
@@ -233,7 +233,7 @@ chmod +x ubuntu-server-setup.sh && sudo ./ubuntu-server-setup.sh -y
 
 ```bash
 # 1. 下载脚本
-curl -O https://raw.githubusercontent.com/typhoon1217/ubuntu-server-init/main/ubuntu-server-setup.sh
+curl -O https://raw.githubusercontent.com/typhoon1217/oh-my-opencode-agents/main/ubuntu-server-setup.sh
 
 # 2. 添加执行权限
 chmod +x ubuntu-server-setup.sh
